@@ -885,12 +885,11 @@ socket.on('newMessage', (data) => {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-// --- MOBILE CONTROLLER LOGIC ONLY ---
+// --- SIMPLE JOYSTICK-TO-MOUSE & BUTTON CONTROLLER ---
 window.addEventListener('DOMContentLoaded', () => {
   const base = document.getElementById('joystick-base');
   const stick = document.getElementById('joystick-stick');
 
-  // Action Buttons
   const btnShoot = document.getElementById('btn-shoot');
   const btnDash = document.getElementById('btn-dash');
   const btnEat = document.getElementById('btn-eat');
@@ -900,8 +899,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   let joystickActive = false;
   let joystickTouchId = null;
-  const maxRadius = 35; // Maximum stick pull distance in pixels
-  const CROSSHAIR_DISTANCE = 120; // Distance of crosshair in front of fish
+  const maxRadius = 35; // Maximum stick drag distance
+  const MOUSE_AIM_DISTANCE = 150; // Virtual cursor distance ahead of player
 
   // 1. TOUCH START
   base.addEventListener('touchstart', (e) => {
@@ -931,6 +930,14 @@ window.addEventListener('DOMContentLoaded', () => {
         joystickActive = false;
         joystickTouchId = null;
         stick.style.transform = `translate(0px, 0px)`;
+
+        // Reset WASD keys on release
+        if (typeof keys !== 'undefined') {
+          keys.w = false;
+          keys.a = false;
+          keys.s = false;
+          keys.d = false;
+        }
         break;
       }
     }
@@ -939,7 +946,7 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('touchend', stopJoystick);
   window.addEventListener('touchcancel', stopJoystick);
 
-  // 4. JOYSTICK MATH & MOVEMENT
+  // 4. JOYSTICK MAPPER
   function handleJoystickMove(touch) {
     const rect = base.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -948,50 +955,41 @@ window.addEventListener('DOMContentLoaded', () => {
     let deltaX = touch.clientX - centerX;
     let deltaY = touch.clientY - centerY;
 
-    // Safety guard against NaN/corrupted input
     if (isNaN(deltaX) || isNaN(deltaY)) return;
 
     const distance = Math.hypot(deltaX, deltaY);
     if (distance === 0) return;
 
-    // Clamp stick within boundary circle
+    // Clamp stick movement
     if (distance > maxRadius) {
       deltaX = (deltaX / distance) * maxRadius;
       deltaY = (deltaY / distance) * maxRadius;
     }
 
-    // Move stick visual element
     stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
 
     const angle = Math.atan2(deltaY, deltaX);
-    const intensity = Math.min(distance / maxRadius, 1);
 
+    // A) Map Joystick Angle to Virtual Mouse / Crosshair Position
     if (typeof player !== 'undefined' && !player.isDead) {
-      // Update aiming angle & crosshair coordinates
       player.angle = angle;
-      if (typeof crosshair !== 'undefined') {
-        crosshair.x = player.x + Math.cos(angle) * CROSSHAIR_DISTANCE;
-        crosshair.y = player.y + Math.sin(angle) * CROSSHAIR_DISTANCE;
+
+      if (typeof mouseX !== 'undefined' && typeof mouseY !== 'undefined') {
+        mouseX = Math.cos(angle) * MOUSE_AIM_DISTANCE;
+        mouseY = Math.sin(angle) * MOUSE_AIM_DISTANCE;
       }
+    }
 
-      // Move player with deadzone check
-      if (intensity > 0.15) {
-        const moveX = Math.cos(angle) * player.speed * intensity;
-        const moveY = Math.sin(angle) * player.speed * intensity;
-
-        if (!isNaN(moveX) && !isNaN(moveY)) {
-          player.x += moveX;
-          player.y += moveY;
-        }
-
-        if (typeof clampPlayerPosition === 'function') {
-          clampPlayerPosition();
-        }
-      }
+    // B) Map Joystick Direction to Directional WASD Keys
+    if (typeof keys !== 'undefined') {
+      keys.d = deltaX > 8;
+      keys.a = deltaX < -8;
+      keys.s = deltaY > 8;
+      keys.w = deltaY < -8;
     }
   }
 
-  // 5. TOUCH BUTTON BINDINGS
+  // 5. BUTTON MAPPING
   const bindTouch = (btnEl, actionFn) => {
     if (!btnEl) return;
     btnEl.addEventListener('touchstart', (e) => {
