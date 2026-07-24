@@ -885,20 +885,25 @@ socket.on('newMessage', (data) => {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-// --- FIXED MOBILE TOUCH CONTROLS ---
+// --- MOBILE CONTROLLER LOGIC ONLY ---
 window.addEventListener('DOMContentLoaded', () => {
   const base = document.getElementById('joystick-base');
   const stick = document.getElementById('joystick-stick');
+
+  // Action Buttons
   const btnShoot = document.getElementById('btn-shoot');
   const btnDash = document.getElementById('btn-dash');
+  const btnEat = document.getElementById('btn-eat');
+  const btnThrow = document.getElementById('btn-throw');
 
   if (!base || !stick) return;
 
   let joystickActive = false;
   let joystickTouchId = null;
-  const maxRadius = 35; // Maximum stick pull distance
+  const maxRadius = 35; // Maximum stick pull distance in pixels
+  const CROSSHAIR_DISTANCE = 120; // Distance of crosshair in front of fish
 
-  // Touch Start
+  // 1. TOUCH START
   base.addEventListener('touchstart', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -908,7 +913,7 @@ window.addEventListener('DOMContentLoaded', () => {
     handleJoystickMove(touch);
   }, { passive: false });
 
-  // Touch Move
+  // 2. TOUCH MOVE
   window.addEventListener('touchmove', (e) => {
     if (!joystickActive) return;
     for (let i = 0; i < e.changedTouches.length; i++) {
@@ -919,18 +924,13 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }, { passive: false });
 
-  // Touch End / Release
+  // 3. TOUCH END / RELEASE
   const stopJoystick = (e) => {
     for (let i = 0; i < e.changedTouches.length; i++) {
       if (e.changedTouches[i].identifier === joystickTouchId) {
         joystickActive = false;
         joystickTouchId = null;
         stick.style.transform = `translate(0px, 0px)`;
-        
-        // Reset keyboard state if used
-        if (typeof keys !== 'undefined') {
-          keys.w = false; keys.a = false; keys.s = false; keys.d = false;
-        }
         break;
       }
     }
@@ -939,71 +939,84 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('touchend', stopJoystick);
   window.addEventListener('touchcancel', stopJoystick);
 
+  // 4. JOYSTICK MATH & MOVEMENT
   function handleJoystickMove(touch) {
-  const rect = base.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
+    const rect = base.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
 
-  let deltaX = touch.clientX - centerX;
-  let deltaY = touch.clientY - centerY;
+    let deltaX = touch.clientX - centerX;
+    let deltaY = touch.clientY - centerY;
 
-  // Sanity check to prevent NaN/invalid numbers
-  if (isNaN(deltaX) || isNaN(deltaY)) return;
+    // Safety guard against NaN/corrupted input
+    if (isNaN(deltaX) || isNaN(deltaY)) return;
 
-  // Math.hypot calculates distance from center safely
-  const distance = Math.hypot(deltaX, deltaY);
+    const distance = Math.hypot(deltaX, deltaY);
+    if (distance === 0) return;
 
-  // If touch is at exact center (distance == 0), don't divide by zero!
-  if (distance === 0) return;
+    // Clamp stick within boundary circle
+    if (distance > maxRadius) {
+      deltaX = (deltaX / distance) * maxRadius;
+      deltaY = (deltaY / distance) * maxRadius;
+    }
 
-  if (distance > maxRadius) {
-    deltaX = (deltaX / distance) * maxRadius;
-    deltaY = (deltaY / distance) * maxRadius;
-  }
+    // Move stick visual element
+    stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
 
-  // Move visual stick
-  stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    const angle = Math.atan2(deltaY, deltaX);
+    const intensity = Math.min(distance / maxRadius, 1);
 
-  // Angle in radians
-  const angle = Math.atan2(deltaY, deltaX);
-  const intensity = Math.min(distance / maxRadius, 1);
-
-  // Apply movement safely
-  if (typeof player !== 'undefined' && !player.isDead) {
-    player.angle = angle;
-
-    // Deadzone check (don't move if tiny accidental drag)
-    if (intensity > 0.15) {
-      const moveX = Math.cos(angle) * player.speed * intensity;
-      const moveY = Math.sin(angle) * player.speed * intensity;
-
-      // Make sure values are valid numbers before adding!
-      if (!isNaN(moveX) && !isNaN(moveY)) {
-        player.x += moveX;
-        player.y += moveY;
+    if (typeof player !== 'undefined' && !player.isDead) {
+      // Update aiming angle & crosshair coordinates
+      player.angle = angle;
+      if (typeof crosshair !== 'undefined') {
+        crosshair.x = player.x + Math.cos(angle) * CROSSHAIR_DISTANCE;
+        crosshair.y = player.y + Math.sin(angle) * CROSSHAIR_DISTANCE;
       }
 
-      if (typeof clampPlayerPosition === 'function') {
-        clampPlayerPosition();
+      // Move player with deadzone check
+      if (intensity > 0.15) {
+        const moveX = Math.cos(angle) * player.speed * intensity;
+        const moveY = Math.sin(angle) * player.speed * intensity;
+
+        if (!isNaN(moveX) && !isNaN(moveY)) {
+          player.x += moveX;
+          player.y += moveY;
+        }
+
+        if (typeof clampPlayerPosition === 'function') {
+          clampPlayerPosition();
+        }
       }
     }
   }
-}
 
-  // Mobile Action Buttons
-  if (btnShoot) {
-    btnShoot.addEventListener('touchstart', (e) => {
+  // 5. TOUCH BUTTON BINDINGS
+  const bindTouch = (btnEl, actionFn) => {
+    if (!btnEl) return;
+    btnEl.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      if (typeof shootBullet === 'function') shootBullet();
+      if (typeof actionFn === 'function') actionFn();
     }, { passive: false });
-  }
+  };
 
-  if (btnDash) {
-    btnDash.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (typeof performDash === 'function') performDash();
-    }, { passive: false });
-  }
+  bindTouch(btnShoot, () => {
+    if (typeof shootBullet === 'function') shootBullet();
+  });
+
+  bindTouch(btnDash, () => {
+    if (typeof performDash === 'function') performDash();
+  });
+
+  bindTouch(btnEat, () => {
+    if (typeof eatFood === 'function') eatFood();
+    else if (typeof socket !== 'undefined') socket.emit('eat');
+  });
+
+  bindTouch(btnThrow, () => {
+    if (typeof throwGun === 'function') throwGun();
+    else if (typeof socket !== 'undefined') socket.emit('throwGun');
+  });
 });
 
 update();

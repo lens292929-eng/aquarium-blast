@@ -21,7 +21,7 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    /* Main Game Canvas */
+    /* Main Canvas */
     #gameCanvas {
       display: block;
       width: 100vw;
@@ -31,7 +31,7 @@
 
     /* --- DESKTOP HUD PANELS --- */
 
-    /* Controls Panel (Top Left) */
+    /* Desktop Controls Box */
     #controls-box {
       position: absolute;
       top: 20px;
@@ -45,27 +45,34 @@
       pointer-events: none;
     }
 
-    /* Leaderboard Panel (Top Right) */
+    /* Leaderboard Box */
     #leaderboard-box {
       position: absolute;
       top: 20px;
       right: 20px;
       width: 240px;
       height: 220px;
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: top right;
-      padding-top: 55px;
-      padding-left: 20px;
-      padding-right: 25px;
+      background: rgba(0, 15, 30, 0.7);
+      border: 1px solid rgba(0, 210, 255, 0.4);
+      border-radius: 8px;
+      padding: 15px;
       pointer-events: none;
+    }
+
+    #leaderboard-title {
+      font-weight: bold;
+      font-size: 14px;
+      color: #00d2ff;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     #leaderboard-list {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      max-height: 140px;
+      max-height: 150px;
       overflow: hidden;
     }
 
@@ -76,7 +83,6 @@
       font-size: 13px;
       font-weight: 700;
       color: #ffffff;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
       padding: 3px 6px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
@@ -87,19 +93,20 @@
       border-radius: 4px;
     }
 
-    /* Chat Panel (Bottom Left) */
+    /* Chat Box */
     #chat-box {
       position: absolute;
       bottom: 20px;
       left: 20px;
       width: 300px;
       height: 200px;
-      background-size: 100% 100%;
-      background-repeat: no-repeat;
+      background: rgba(0, 15, 30, 0.75);
+      border: 1px solid rgba(0, 210, 255, 0.4);
+      border-radius: 8px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 45px 15px 15px 15px;
+      padding: 12px;
       z-index: 5;
     }
 
@@ -131,7 +138,7 @@
 
     #chat-input {
       width: 100%;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.5);
       border: 1px solid rgba(0, 210, 255, 0.4);
       border-radius: 4px;
       color: #ffffff;
@@ -145,8 +152,7 @@
       box-shadow: 0 0 5px rgba(0, 210, 255, 0.5);
     }
 
-    /* --- MOBILE CONTROLS OVERLAY --- */
-    
+    /* --- MOBILE OVERLAY (JOYSTICK & TOUCH BUTTONS) --- */
     #mobile-controls {
       display: none;
       position: absolute;
@@ -155,7 +161,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 10;
+      z-index: 20;
     }
 
     #joystick-zone {
@@ -193,50 +199,72 @@
       bottom: 30px;
       right: 30px;
       display: flex;
-      gap: 15px;
+      flex-direction: column;
+      gap: 12px;
       pointer-events: auto;
     }
 
+    .button-row {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
     .touch-btn {
-      width: 65px;
-      height: 65px;
       border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.6);
-      background: rgba(0, 150, 255, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      background: rgba(0, 150, 255, 0.45);
       color: white;
-      font-size: 24px;
       touch-action: manipulation;
       display: flex;
       align-items: center;
       justify-content: center;
       outline: none;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     }
 
     .touch-btn:active {
+      transform: scale(0.92);
       background: rgba(0, 210, 255, 0.9);
-      transform: scale(0.95);
     }
 
-    /* --- MOBILE MEDIA OVERRIDES --- */
+    .main-btn {
+      width: 65px;
+      height: 65px;
+      font-size: 24px;
+    }
+
+    .alt-btn {
+      width: 50px;
+      height: 50px;
+      font-size: 18px;
+      background: rgba(0, 80, 180, 0.5);
+    }
+
+    .shoot-btn {
+      background: rgba(255, 60, 60, 0.6);
+      border-color: rgba(255, 120, 120, 0.9);
+    }
+
+    /* --- MOBILE SCREEN OVERRIDES --- */
     @media (hover: none) and (pointer: coarse) {
-      /* 1. Show mobile touch overlay */
+      /* Show touch overlay on mobile */
       #mobile-controls {
         display: block;
       }
 
-      /* 2. Hide the big desktop controls panel PNG */
+      /* Hide big desktop controls PNG on mobile */
       #controls-box {
         display: none !important;
       }
 
-      /* 3. Make chat box smaller & position above joystick */
+      /* Make chat smaller and position above the joystick */
       #chat-box {
-        width: 200px;
-        height: 120px;
-        bottom: 160px; /* Shifted up above joystick */
+        width: 180px;
+        height: 110px;
+        bottom: 160px;
         left: 15px;
-        padding: 25px 10px 10px 10px;
-        font-size: 10px;
+        padding: 8px;
       }
 
       #chat-messages {
@@ -248,13 +276,15 @@
         font-size: 10px;
       }
 
-      /* Shrink Leaderboard slightly on mobile */
+      /* Scale down Leaderboard on mobile screens */
       #leaderboard-box {
-        width: 180px;
-        height: 160px;
-        padding-top: 40px;
-        padding-left: 10px;
-        padding-right: 15px;
+        width: 160px;
+        height: 140px;
+        padding: 8px;
+      }
+
+      #leaderboard-title {
+        font-size: 11px;
       }
 
       .lb-row {
@@ -270,6 +300,7 @@
   <div id="controls-box"></div>
 
   <div id="leaderboard-box">
+    <div id="leaderboard-title">Leaderboard</div>
     <div id="leaderboard-list"></div>
   </div>
 
@@ -284,9 +315,16 @@
         <div id="joystick-stick"></div>
       </div>
     </div>
+
     <div id="action-buttons">
-      <button id="btn-shoot" class="touch-btn">🔫</button>
-      <button id="btn-dash" class="touch-btn">⚡</button>
+      <div class="button-row">
+        <button id="btn-eat" class="touch-btn alt-btn">🍽️</button>
+        <button id="btn-throw" class="touch-btn alt-btn">🖐️</button>
+      </div>
+      <div class="button-row">
+        <button id="btn-dash" class="touch-btn main-btn">⚡</button>
+        <button id="btn-shoot" class="touch-btn main-btn shoot-btn">🔫</button>
+      </div>
     </div>
   </div>
 
