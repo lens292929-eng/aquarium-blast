@@ -2,162 +2,266 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fish Arena Online</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Aquarium Blast</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
       user-select: none;
+      -webkit-user-select: none;
     }
 
-    body {
-      margin: 0;
+    body, html {
+      width: 100%;
+      height: 100%;
       overflow: hidden;
-      background-color: #0b0d10;
+      background-color: #020912;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    canvas#gameCanvas {
+    /* Main Game Canvas */
+    #gameCanvas {
       display: block;
-    }
-
-    /* --- OVERLAY CONTAINER --- */
-    #ui-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
       width: 100vw;
       height: 100vh;
-      pointer-events: none;
-      z-index: 10;
+      cursor: crosshair;
     }
 
-    #ui-layer input, 
-    #ui-layer button {
-      pointer-events: auto;
-    }
+    /* --- DESKTOP HUD PANELS --- */
 
-    /* --- BASE PANEL IMAGE CARRIER --- */
-    .img-panel {
-      position: absolute;
-      background-size: 100% 100%;
-      background-repeat: no-repeat;
-      background-position: center;
-      color: #ffffff;
-      padding: 20px;
-      filter: drop-shadow(0px 8px 16px rgba(0, 0, 0, 0.5));
-    }
-
-    /* --- CONTROLS PANEL --- */
+    /* Controls Panel (Top Left) */
     #controls-box {
+      position: absolute;
       top: 20px;
       left: 20px;
-      width: 280px;
-      height: 280px;
+      width: 260px;
+      height: 180px;
       background-image: url('controls.png');
-      background-size: contain;      /* Keeps true aspect ratio */
+      background-size: contain;
       background-repeat: no-repeat;
-      padding-top: 55px; /* Offset text to clear the panel header graphic */
-      padding-left: 25px;
+      background-position: top left;
+      pointer-events: none;
     }
 
-    .control-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 6px;
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    kbd {
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-family: monospace;
-      font-size: 11px;
-      color: #ffffff;
-      min-width: 24px;
-      text-align: center;
-    }
-
-    /* --- CHAT PANEL --- */
-    #chat-container {
-      bottom: 20px;
-      left: 20px;
-      width: 480px;
-      height: 220px;
-      background-image: url('chat.png');
-      padding-top: 55px;
-      padding-left: 25px;
-      padding-right: 25px;
-      padding-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    #chat-messages {
-      height: 110px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      padding-right: 6px;
-    }
-
-    .chat-msg {
-      font-size: 13px;
-      color: #ffffff;
-      word-wrap: break-word;
-    }
-
-    .chat-msg .username {
-      font-weight: bold;
-      color: #00d4ff;
-    }
-
-    #chat-input {
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(0, 212, 255, 0.4);
-      border-radius: 4px;
-      padding: 6px 10px;
-      color: #ffffff;
-      font-size: 12px;
-      outline: none;
-      width: 100%;
-    }
-
-    #chat-input:focus {
-      border-color: #00d4ff;
-    }
-
-    /* --- LEADERBOARD PANEL --- */
+    /* Leaderboard Panel (Top Right) */
     #leaderboard-box {
+      position: absolute;
       top: 20px;
       right: 20px;
-      width: 260px;
-      height: 240px;
+      width: 240px;
+      height: 220px;
       background-image: url('leaderboard.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: top right;
       padding-top: 55px;
-      padding-left: 25px;
+      padding-left: 20px;
       padding-right: 25px;
+      pointer-events: none;
+    }
+
+    #leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 140px;
+      overflow: hidden;
     }
 
     .lb-row {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 13px;
-      padding: 4px 0;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      padding: 3px 6px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .lb-row.me {
       color: #00ff88;
+      background: rgba(0, 255, 136, 0.15);
+      border-radius: 4px;
+    }
+
+    /* Chat Panel (Bottom Left) */
+    #chat-box {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      width: 300px;
+      height: 200px;
+      background-image: url('chat.png');
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 45px 15px 15px 15px;
+      z-index: 5;
+    }
+
+    #chat-messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: #ffffff;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+
+    #chat-messages::-webkit-scrollbar {
+      width: 4px;
+    }
+    #chat-messages::-webkit-scrollbar-thumb {
+      background: rgba(0, 210, 255, 0.5);
+      border-radius: 2px;
+    }
+
+    .chat-msg .username {
       font-weight: bold;
+      color: #00d2ff;
+      margin-right: 4px;
+    }
+
+    #chat-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(0, 210, 255, 0.4);
+      border-radius: 4px;
+      color: #ffffff;
+      padding: 6px 10px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    #chat-input:focus {
+      border-color: #00d2ff;
+      box-shadow: 0 0 5px rgba(0, 210, 255, 0.5);
+    }
+
+    /* --- MOBILE CONTROLS OVERLAY --- */
+    
+    #mobile-controls {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #joystick-zone {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      width: 120px;
+      height: 120px;
+      pointer-events: auto;
+    }
+
+    #joystick-base {
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 210, 255, 0.2);
+      border: 2px solid rgba(0, 210, 255, 0.6);
+      border-radius: 50%;
+      position: relative;
+      touch-action: none;
+    }
+
+    #joystick-stick {
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 50%;
+      position: absolute;
+      top: 35px;
+      left: 35px;
+      box-shadow: 0 0 10px rgba(0, 210, 255, 0.8);
+    }
+
+    #action-buttons {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      display: flex;
+      gap: 15px;
+      pointer-events: auto;
+    }
+
+    .touch-btn {
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      background: rgba(0, 150, 255, 0.5);
+      color: white;
+      font-size: 24px;
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+    }
+
+    .touch-btn:active {
+      background: rgba(0, 210, 255, 0.9);
+      transform: scale(0.95);
+    }
+
+    /* --- MOBILE MEDIA OVERRIDES --- */
+    @media (hover: none) and (pointer: coarse) {
+      /* 1. Show mobile touch overlay */
+      #mobile-controls {
+        display: block;
+      }
+
+      /* 2. Hide the big desktop controls panel PNG */
+      #controls-box {
+        display: none !important;
+      }
+
+      /* 3. Make chat box smaller & position above joystick */
+      #chat-box {
+        width: 200px;
+        height: 120px;
+        bottom: 160px; /* Shifted up above joystick */
+        left: 15px;
+        padding: 25px 10px 10px 10px;
+        font-size: 10px;
+      }
+
+      #chat-messages {
+        font-size: 10px;
+      }
+
+      #chat-input {
+        padding: 4px 6px;
+        font-size: 10px;
+      }
+
+      /* Shrink Leaderboard slightly on mobile */
+      #leaderboard-box {
+        width: 180px;
+        height: 160px;
+        padding-top: 40px;
+        padding-left: 10px;
+        padding-right: 15px;
+      }
+
+      .lb-row {
+        font-size: 10px;
+      }
     }
   </style>
 </head>
@@ -165,19 +269,31 @@
 
   <canvas id="gameCanvas"></canvas>
 
-  <div id="ui-layer">
-    
-    <div id="controls-box" class="img-panel">
-    </div>
+  <div id="controls-box"></div>
 
-    <div id="chat-container" class="img-panel">
-      <div id="chat-messages"></div>
-      <input type="text" id="chat-input" placeholder="Type a message..." maxlength="80">
-    </div>
+  <div id="leaderboard-box">
+    <div id="leaderboard-list"></div>
+  </div>
 
+  <div id="chat-box">
+    <div id="chat-messages"></div>
+    <input type="text" id="chat-input" placeholder="Type..." maxlength="80" autocomplete="off" />
+  </div>
+
+  <div id="mobile-controls">
+    <div id="joystick-zone">
+      <div id="joystick-base">
+        <div id="joystick-stick"></div>
+      </div>
+    </div>
+    <div id="action-buttons">
+      <button id="btn-shoot" class="touch-btn">🔫</button>
+      <button id="btn-dash" class="touch-btn">⚡</button>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="scripts.js"></script>
+
 </body>
 </html>

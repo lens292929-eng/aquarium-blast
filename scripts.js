@@ -247,11 +247,11 @@ window.addEventListener('mousedown', (e) => {
     if (currentTime - player.lastDashTime >= player.dashCooldown) {
       player.lastDashTime = currentTime;
       player.isDashing = true;
-      player.dashDuration = 15;
+      player.dashDuration = 50;
       player.dashSpinAngle = 0;
 
-      player.vx += Math.cos(player.angle) * 18;
-      player.vy += Math.sin(player.angle) * 18;
+      player.vx += Math.cos(player.angle) * 40;
+      player.vy += Math.sin(player.angle) * 40;
 
       spawnParticles(player.x, player.y, 14, '#7fdfff', { speed: 5, life: 22, size: 4 });
     }
@@ -662,49 +662,79 @@ function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead) {
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
 
+  // --- 1. DRAW UI (HEALTH BAR & NAME) ABOVE FISH ---
   if (!isDead) {
-    const barWidth = 50;
+    const barWidth = 60;
     const barHeight = 6;
     const barY = -40;
     const hpRatio = hp / maxHp;
 
-    // name plate background for readability
+    // Nameplate background
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     const nameWidth = ctx.measureText(username).width;
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.fillRect(-nameWidth / 2 - 6, barY - 16, nameWidth + 12, 14);
 
+    // Health bar background (red)
     ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
     ctx.fillRect(-barWidth / 2, barY, barWidth, barHeight);
 
+    // Health bar fill
     const currentHpWidth = Math.max(0, hpRatio * barWidth);
     ctx.fillStyle = hpRatio > 0.5 ? '#00ff66' : hpRatio > 0.25 ? '#ffcc00' : '#ff3333';
     ctx.fillRect(-barWidth / 2, barY, currentHpWidth, barHeight);
 
+    // Health bar border
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 1;
     ctx.strokeRect(-barWidth / 2, barY, barWidth, barHeight);
 
+    // Username text
     ctx.fillStyle = '#ffffff';
     ctx.fillText(username, 0, barY - 5);
   }
 
-  ctx.rotate(angle);
+  // --- 2. DIRECTION & DEAD STATE TRANSFORMATIONS ---
+  const isFacingLeft = Math.cos(angle) < 0;
+
+  // Dead belly-up effect
   if (isDead) {
     ctx.scale(1, -1);
     ctx.globalAlpha = 0.75;
   }
 
-  ctx.drawImage(fishImage, -player.width / 2, -player.height / 2, player.width, player.height);
+  // --- 3. DRAW FISH SPRITE ---
+  ctx.save();
+  
+  // Flip fish horizontally if facing left
+  if (isFacingLeft) {
+    ctx.scale(-1, 1);
+  }
 
+  // Fish dimensions (adjust width/height values as needed)
+  const fishWidth = 60;
+  const fishHeight = 40;
+  ctx.drawImage(fishImage, -fishWidth / 2, -fishHeight / 2, fishWidth, fishHeight);
+  ctx.restore();
+
+  // --- 4. DRAW GUN (ROTATES 360° TOWARD AIM) ---
   if (hasGun && !isDead) {
-    ctx.drawImage(gunImage, 8, -12, 40, 28);
+    ctx.save();
+    ctx.rotate(angle);
+
+    // If aiming left, invert gun vertically so it stays right-side-up
+    if (isFacingLeft) {
+      ctx.scale(1, -1);
+    }
+
+    // Offset gun relative to fish mouth
+    ctx.drawImage(gunImage, 10, -12, 40, 28);
+    ctx.restore();
   }
 
   ctx.restore();
 }
-
 function drawMinimap() {
   const size = 150;
   const padding = 20;
@@ -854,5 +884,87 @@ socket.on('newMessage', (data) => {
   // Auto-scroll to latest message
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
+
+// --- VIRTUAL JOYSTICK LOGIC ---
+const base = document.getElementById('joystick-base');
+const stick = document.getElementById('joystick-stick');
+
+let joystickActive = false;
+let joystickTouchId = null;
+const maxRadius = 35; // How far the stick can drag from center
+
+if (base && stick) {
+  // Touch Start
+  base.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    joystickTouchId = touch.identifier;
+    joystickActive = true;
+    updateJoystick(touch);
+  }, { passive: false });
+
+  // Touch Move
+  window.addEventListener('touchmove', (e) => {
+    if (!joystickActive) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === joystickTouchId) {
+        updateJoystick(e.changedTouches[i]);
+        break;
+      }
+    }
+  }, { passive: false });
+
+  // Reset Stick when Touch Ends
+  const resetJoystick = (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === joystickTouchId) {
+        joystickActive = false;
+        joystickTouchId = null;
+        stick.style.transform = `translate(0px, 0px)`;
+        
+        // Stop movement when thumb is lifted
+        if (typeof keys !== 'undefined') {
+          keys.w = false; keys.a = false; keys.s = false; keys.d = false;
+        }
+        break;
+      }
+    }
+  };
+
+  window.addEventListener('touchend', resetJoystick);
+  window.addEventListener('touchcancel', resetJoystick);
+
+  function updateJoystick(touch) {
+    const rect = base.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    let deltaX = touch.clientX - centerX;
+    let deltaY = touch.clientY - centerY;
+    const distance = Math.hypot(deltaX, deltaY);
+
+    // Limit stick distance within the circle
+    if (distance > maxRadius) {
+      deltaX = (deltaX / distance) * maxRadius;
+      deltaY = (deltaY / distance) * maxRadius;
+    }
+
+    // Move visual stick
+    stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+    // 1. Aim player towards joystick angle
+    if (typeof player !== 'undefined') {
+      player.angle = Math.atan2(deltaY, deltaX);
+    }
+
+    // 2. Map drag offsets to WASD movement triggers
+    if (typeof keys !== 'undefined') {
+      keys.d = deltaX > 8;
+      keys.a = deltaX < -8;
+      keys.s = deltaY > 8;
+      keys.w = deltaY < -8;
+    }
+  }
+}
 
 update();
