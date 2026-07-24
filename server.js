@@ -1,0 +1,122 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+
+app.use(express.static(__dirname));
+
+const MAP_WIDTH = 3000;
+const MAP_HEIGHT = 3000;
+const players = {};
+
+io.on('connection', (socket) => {
+  console.log(`Player connected: ${socket.id}`);
+
+  // 1. Join Game
+  socket.on('joinGame', (username) => {
+    players[socket.id] = {
+      id: socket.id,
+      x: Math.random() * (MAP_WIDTH - 200) + 100,
+      y: Math.random() * (MAP_HEIGHT - 200) + 100,
+      angle: 0,
+      hp: 100,
+      maxHp: 100,
+      kills: 0,
+      username: username || "Fish",
+      hasGun: true,
+      isDashing: false,
+      dashSpinAngle: 0,
+      isDead: false
+    };
+
+    socket.emit('initMap', { width: MAP_WIDTH, height: MAP_HEIGHT });
+    socket.emit('currentPlayers', players);
+    socket.broadcast.emit('newPlayer', players[socket.id]);
+  });
+
+  // 2. Movement Sync
+  socket.on('playerInput', (data) => {
+    if (players[socket.id]) {
+      players[socket.id].x = data.x;
+      players[socket.id].y = data.y;
+      players[socket.id].angle = data.angle;
+      players[socket.id].hasGun = data.hasGun;
+      players[socket.id].isDashing = data.isDashing;
+      players[socket.id].dashSpinAngle = data.dashSpinAngle;
+      players[socket.id].isDead = data.isDead;
+
+      socket.broadcast.emit('playerMoved', players[socket.id]);
+    }
+  });
+
+  // 3. Damage & Kill Tracking
+  socket.on('takeDamage', (data) => {
+    const target = players[data.targetId];
+    const attacker = players[socket.id];
+
+    if (target && !target.isDead) {
+      target.hp -= data.amount;
+      
+      if (target.hp <= 0) {
+        target.hp = 0;
+        target.isDead = true;
+
+        if (attacker && attacker.id !== target.id) {
+          attacker.kills = (attacker.kills || 0) + 1;
+        }
+      }
+
+      io.emit('playerHealthUpdate', {
+        id: data.targetId,
+        hp: target.hp,
+        isDead: target.isDead,
+        attackerId: socket.id
+      });
+
+      io.emit('leaderboardUpdate', getLeaderboard());
+    }
+  });
+
+  // 4. Respawn
+  socket.on('respawnPlayer', () => {
+    if (players[socket.id]) {
+      players[socket.id].hp = 100;
+      players[socket.id].isDead = false;
+      players[socket.id].x = Math.random() * (MAP_WIDTH - 200) + 100;
+      players[socket.id].y = Math.random() * (MAP_HEIGHT - 200) + 100;
+      players[socket.id].hasGun = true;
+
+      io.emit('playerRespawned', {
+        id: socket.id,
+        x: players[socket.id].x,
+        y: players[socket.id].y,
+        hp: 100
+      });
+
+      io.emit('leaderboardUpdate', getLeaderboard());
+    }
+  });
+
+  // 5. Disconnect
+  socket.on('disconnect', () => {
+    console.log(`Player disconnected: ${socket.id}`);
+    delete players[socket.id];
+    io.emit('playerDisconnected', socket.id);
+    io.emit('leaderboardUpdate', getLeaderboard());
+  });
+});
+
+function getLeaderboard() {
+  return Object.values(players)
+    .map(p => ({ username: p.username, kills: p.kills || 0 }))
+    .sort((a, b) => b.kills - a.kills)
+    .slice(0, 5); // Top 5
+}
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Aquarium Blast server running on http://localhost:${PORT}`);
+});
