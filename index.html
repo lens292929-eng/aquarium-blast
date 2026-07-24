@@ -164,7 +164,7 @@
       z-index: 20;
     }
 
-    #joystick-zone {
+      #move-zone {
       position: absolute;
       bottom: 30px;
       left: 30px;
@@ -173,7 +173,17 @@
       pointer-events: auto;
     }
 
-    #joystick-base {
+    #aim-zone {
+      position: absolute;
+      bottom: 30px;
+      right: 170px;
+      width: 120px;
+      height: 120px;
+      pointer-events: auto;
+    }
+
+    #move-base,
+    #aim-base {
       width: 100%;
       height: 100%;
       background: rgba(0, 210, 255, 0.2);
@@ -183,15 +193,16 @@
       touch-action: none;
     }
 
-    #joystick-stick {
+    #move-stick,
+    #aim-stick {
       width: 50px;
       height: 50px;
-      background: rgba(255, 255, 255, 0.85);
+      background: rgba(255,255,255,.85);
       border-radius: 50%;
       position: absolute;
-      top: 35px;
       left: 35px;
-      box-shadow: 0 0 10px rgba(0, 210, 255, 0.8);
+      top: 35px;
+      box-shadow: 0 0 10px rgba(0,210,255,.8);
     }
 
     #action-buttons {
@@ -310,23 +321,36 @@
   </div>
 
   <div id="mobile-controls">
-    <div id="joystick-zone">
-      <div id="joystick-base">
-        <div id="joystick-stick"></div>
-      </div>
-    </div>
 
-    <div id="action-buttons">
-      <div class="button-row">
-        <button id="btn-eat" class="touch-btn alt-btn">🍽️</button>
-        <button id="btn-throw" class="touch-btn alt-btn">🖐️</button>
-      </div>
-      <div class="button-row">
-        <button id="btn-dash" class="touch-btn main-btn">⚡</button>
-        <button id="btn-shoot" class="touch-btn main-btn shoot-btn">🔫</button>
-      </div>
+  <!-- Left Movement Stick -->
+  <div id="move-zone">
+    <div id="move-base">
+      <div id="move-stick"></div>
     </div>
   </div>
+
+  <!-- Right Aim Stick -->
+  <div id="aim-zone">
+    <div id="aim-base">
+      <div id="aim-stick"></div>
+    </div>
+  </div>
+
+  <div id="action-buttons">
+
+    <div class="button-row">
+      <button id="btn-eat" class="touch-btn alt-btn">🦈</button>
+      <button id="btn-throw" class="touch-btn alt-btn">🎯</button>
+    </div>
+
+    <div class="button-row">
+      <button id="btn-dash" class="touch-btn main-btn">⚡</button>
+      <button id="btn-shoot" class="touch-btn main-btn shoot-btn">🔫</button>
+    </div>
+
+  </div>
+
+</div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="scripts.js"></script>

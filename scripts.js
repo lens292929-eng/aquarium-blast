@@ -350,25 +350,49 @@ function update() {
     player.y += player.vy;
     player.flopAngle += 0.25;
   } else {
+    // --------------------------------------------------
+    // Twin-stick movement
+    // --------------------------------------------------
+
     let worldMouseX = mouse.x + (player.x - canvas.width / 2);
     let worldMouseY = mouse.y + (player.y - canvas.height / 2);
-    let dx = worldMouseX - player.x;
-    let dy = worldMouseY - player.y;
-    player.angle = Math.atan2(dy, dx);
 
-    const fishRange = (player.width / 2) * 4;
+    let aimDX = worldMouseX - player.x;
+    let aimDY = worldMouseY - player.y;
+
+    // Only update aim if the aim stick is being pushed.
+    if (Math.hypot(aimDX, aimDY) > 10) {
+        player.angle = Math.atan2(aimDY, aimDX);
+    }
 
     if (player.isBiting) {
-      player.vx *= 0.5;
-      player.vy *= 0.5;
-      player.biteTimer--;
-      if (player.biteTimer <= 0) player.isBiting = false;
-    } else if (Math.hypot(dx, dy) > fishRange && !player.isDashing) {
-      player.vx += Math.cos(player.angle) * 0.25;
-      player.vy += Math.sin(player.angle) * 0.25;
-    } else if (!player.isDashing) {
-      player.vx *= 0.85;
-      player.vy *= 0.85;
+
+        player.vx *= 0.5;
+        player.vy *= 0.5;
+
+        player.biteTimer--;
+
+        if (player.biteTimer <= 0)
+            player.isBiting = false;
+
+    }
+    else if (!player.isDashing) {
+
+        const deadZone = 0.15;
+
+        if (Math.abs(moveInput.x) > deadZone || Math.abs(moveInput.y) > deadZone) {
+
+            player.vx += moveInput.x * 0.35;
+            player.vy += moveInput.y * 0.35;
+
+        }
+        else {
+
+            player.vx *= 0.85;
+            player.vy *= 0.85;
+
+        }
+
     }
 
     // DASH LOGIC & TRAIL CREATION
@@ -885,136 +909,244 @@ socket.on('newMessage', (data) => {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-// --- SIMPLE JOYSTICK-TO-MOUSE & BUTTON CONTROLLER ---
-window.addEventListener('DOMContentLoaded', () => {
-  const base = document.getElementById('joystick-base');
-  const stick = document.getElementById('joystick-stick');
+// ======================================================
+// MOBILE TWIN-STICK CONTROLS
+// Replace the old joystick section with this.
+// ======================================================
 
-  const btnShoot = document.getElementById('btn-shoot');
-  const btnDash = document.getElementById('btn-dash');
-  const btnEat = document.getElementById('btn-eat');
-  const btnThrow = document.getElementById('btn-throw');
+let moveInput = {
+    x: 0,
+    y: 0
+};
 
-  if (!base || !stick) return;
+window.addEventListener("DOMContentLoaded", () => {
 
-  let joystickActive = false;
-  let joystickTouchId = null;
-  const maxRadius = 35; // Maximum stick drag distance
-  const MOUSE_AIM_DISTANCE = 150; // Virtual cursor distance ahead of player
+    const moveBase = document.getElementById("move-base");
+    const moveStick = document.getElementById("move-stick");
 
-  // 1. TOUCH START
-  base.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const touch = e.changedTouches[0];
-    joystickTouchId = touch.identifier;
-    joystickActive = true;
-    handleJoystickMove(touch);
-  }, { passive: false });
+    const aimBase = document.getElementById("aim-base");
+    const aimStick = document.getElementById("aim-stick");
 
-  // 2. TOUCH MOVE
-  window.addEventListener('touchmove', (e) => {
-    if (!joystickActive) return;
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      if (e.changedTouches[i].identifier === joystickTouchId) {
-        handleJoystickMove(e.changedTouches[i]);
-        break;
-      }
-    }
-  }, { passive: false });
+    const btnShoot = document.getElementById("btn-shoot");
+    const btnDash = document.getElementById("btn-dash");
+    const btnBite = document.getElementById("btn-bite");
+    const btnThrow = document.getElementById("btn-throw");
 
-  // 3. TOUCH END / RELEASE
-  const stopJoystick = (e) => {
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      if (e.changedTouches[i].identifier === joystickTouchId) {
-        joystickActive = false;
-        joystickTouchId = null;
-        stick.style.transform = `translate(0px, 0px)`;
+    const STICK_RADIUS = 45;
+    const AIM_DISTANCE = 180;
 
-        // Reset WASD keys on release
-        if (typeof keys !== 'undefined') {
-          keys.w = false;
-          keys.a = false;
-          keys.s = false;
-          keys.d = false;
+    let moveTouch = null;
+    let aimTouch = null;
+
+    function clamp(dx, dy) {
+        const d = Math.hypot(dx, dy);
+
+        if (d <= STICK_RADIUS) {
+            return {
+                x: dx,
+                y: dy,
+                strength: d / STICK_RADIUS
+            };
         }
-        break;
-      }
-    }
-  };
 
-  window.addEventListener('touchend', stopJoystick);
-  window.addEventListener('touchcancel', stopJoystick);
-
-  // 4. JOYSTICK MAPPER
-  function handleJoystickMove(touch) {
-    const rect = base.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    let deltaX = touch.clientX - centerX;
-    let deltaY = touch.clientY - centerY;
-
-    if (isNaN(deltaX) || isNaN(deltaY)) return;
-
-    const distance = Math.hypot(deltaX, deltaY);
-    if (distance === 0) return;
-
-    // Clamp stick movement
-    if (distance > maxRadius) {
-      deltaX = (deltaX / distance) * maxRadius;
-      deltaY = (deltaY / distance) * maxRadius;
+        return {
+            x: dx / d * STICK_RADIUS,
+            y: dy / d * STICK_RADIUS,
+            strength: 1
+        };
     }
 
-    stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    function handleMoveJoystick(touch) {
 
-    const angle = Math.atan2(deltaY, deltaX);
+        const rect = moveBase.getBoundingClientRect();
 
-    // A) Map Joystick Angle to Virtual Mouse / Crosshair Position
-    if (typeof player !== 'undefined' && !player.isDead) {
-      player.angle = angle;
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
 
-      if (typeof mouseX !== 'undefined' && typeof mouseY !== 'undefined') {
-        mouseX = Math.cos(angle) * MOUSE_AIM_DISTANCE;
-        mouseY = Math.sin(angle) * MOUSE_AIM_DISTANCE;
-      }
+        let dx = touch.clientX - cx;
+        let dy = touch.clientY - cy;
+
+        const result = clamp(dx, dy);
+
+        moveStick.style.transform =
+            `translate(${result.x}px, ${result.y}px)`;
+
+        moveInput.x = result.x / STICK_RADIUS;
+        moveInput.y = result.y / STICK_RADIUS;
     }
 
-    // B) Map Joystick Direction to Directional WASD Keys
-    if (typeof keys !== 'undefined') {
-      keys.d = deltaX > 8;
-      keys.a = deltaX < -8;
-      keys.s = deltaY > 8;
-      keys.w = deltaY < -8;
+    function handleAimJoystick(touch) {
+
+        const rect = aimBase.getBoundingClientRect();
+
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+
+        let dx = touch.clientX - cx;
+        let dy = touch.clientY - cy;
+
+        const result = clamp(dx, dy);
+
+        aimStick.style.transform =
+            `translate(${result.x}px, ${result.y}px)`;
+
+        const angle = Math.atan2(result.y, result.x);
+
+        player.angle = angle;
+
+        mouse.x =
+            canvas.width / 2 +
+            Math.cos(angle) * AIM_DISTANCE * result.strength;
+
+        mouse.y =
+            canvas.height / 2 +
+            Math.sin(angle) * AIM_DISTANCE * result.strength;
     }
-  }
 
-  // 5. BUTTON MAPPING
-  const bindTouch = (btnEl, actionFn) => {
-    if (!btnEl) return;
-    btnEl.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (typeof actionFn === 'function') actionFn();
-    }, { passive: false });
-  };
+    function startTouch(e) {
 
-  bindTouch(btnShoot, () => {
-    if (typeof shootBullet === 'function') shootBullet();
-  });
+        for (const touch of e.changedTouches) {
 
-  bindTouch(btnDash, () => {
-    if (typeof performDash === 'function') performDash();
-  });
+            if (
+                moveBase.contains(touch.target) &&
+                moveTouch === null
+            ) {
 
-  bindTouch(btnEat, () => {
-    if (typeof eatFood === 'function') eatFood();
-    else if (typeof socket !== 'undefined') socket.emit('eat');
-  });
+                moveTouch = touch.identifier;
+                handleMoveJoystick(touch);
 
-  bindTouch(btnThrow, () => {
-    if (typeof throwGun === 'function') throwGun();
-    else if (typeof socket !== 'undefined') socket.emit('throwGun');
-  });
+            } else if (
+                aimBase.contains(touch.target) &&
+                aimTouch === null
+            ) {
+
+                aimTouch = touch.identifier;
+                handleAimJoystick(touch);
+            }
+        }
+
+        e.preventDefault();
+    }
+
+    function moveTouchHandler(e) {
+
+        for (const touch of e.changedTouches) {
+
+            if (touch.identifier === moveTouch)
+                handleMoveJoystick(touch);
+
+            if (touch.identifier === aimTouch)
+                handleAimJoystick(touch);
+        }
+
+        e.preventDefault();
+    }
+
+    function endTouch(e) {
+
+        for (const touch of e.changedTouches) {
+
+            if (touch.identifier === moveTouch) {
+
+                moveTouch = null;
+
+                moveInput.x = 0;
+                moveInput.y = 0;
+
+                moveStick.style.transform =
+                    "translate(0px,0px)";
+            }
+
+            if (touch.identifier === aimTouch) {
+
+                aimTouch = null;
+
+                aimStick.style.transform =
+                    "translate(0px,0px)";
+
+                mouse.x = canvas.width / 2;
+                mouse.y = canvas.height / 2;
+            }
+        }
+    }
+
+    moveBase.addEventListener("touchstart", startTouch, {
+        passive:false
+    });
+
+    aimBase.addEventListener("touchstart", startTouch, {
+        passive:false
+    });
+
+    window.addEventListener("touchmove", moveTouchHandler,{
+        passive:false
+    });
+
+    window.addEventListener("touchend", endTouch);
+
+    window.addEventListener("touchcancel", endTouch);
+
+    function bind(button, action){
+
+        if(!button) return;
+
+        button.addEventListener("touchstart",(e)=>{
+
+            e.preventDefault();
+
+            action();
+
+        },{passive:false});
+    }
+
+    bind(btnShoot,()=>{
+
+        shootBananaPistol();
+
+    });
+
+    bind(btnBite,()=>{
+
+        performBite();
+
+    });
+
+    bind(btnThrow,()=>{
+
+        throwGun();
+
+    });
+
+    bind(btnDash,()=>{
+
+        const currentTime = Date.now();
+
+        if(currentTime-player.lastDashTime>=player.dashCooldown){
+
+            player.lastDashTime=currentTime;
+
+            player.isDashing=true;
+            player.dashDuration=50;
+            player.dashSpinAngle=0;
+
+            player.vx+=Math.cos(player.angle)*40;
+            player.vy+=Math.sin(player.angle)*40;
+
+            spawnParticles(
+                player.x,
+                player.y,
+                14,
+                "#7fdfff",
+                {
+                    speed:5,
+                    life:22,
+                    size:4
+                }
+            );
+        }
+
+    });
+
 });
 
 update();
