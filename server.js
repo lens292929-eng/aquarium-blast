@@ -45,7 +45,24 @@ io.on('connection', (socket) => {
     io.emit('leaderboardUpdate', getLeaderboard());
   });
 
-  // 2. Movement Sync
+  // 2. Chat System
+  socket.on('chatMessage', (messageText) => {
+    const player = players[socket.id];
+
+    if (player && typeof messageText === 'string') {
+      const cleanText = messageText.trim().substring(0, 80); // Cap message length at 80 characters
+
+      if (cleanText.length > 0) {
+        // Broadcast message to everyone with the player's actual username
+        io.emit('newMessage', {
+          username: player.username,
+          text: cleanText
+        });
+      }
+    }
+  });
+
+  // 3. Movement Sync
   socket.on('playerInput', (data) => {
     if (players[socket.id]) {
       players[socket.id].x = data.x;
@@ -60,7 +77,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 3. Damage & Kill Tracking
+  // 4. Damage & Kill Tracking
   socket.on('takeDamage', (data) => {
     const target = players[data.targetId];
     const attacker = players[socket.id];
@@ -88,7 +105,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 4. Respawn
+  // 5. Respawn
   socket.on('respawnPlayer', () => {
     if (players[socket.id]) {
       players[socket.id].hp = 100;
@@ -108,7 +125,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 5. Disconnect
+  // 6. Disconnect
   socket.on('disconnect', () => {
     console.log(`Player disconnected: ${socket.id}`);
     delete players[socket.id];

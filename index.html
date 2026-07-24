@@ -9,84 +9,102 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      user-select: none;
     }
 
     body {
       margin: 0;
       overflow: hidden;
-      background-color: #001e36;
+      background-color: #0b0d10;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    canvas {
+    canvas#gameCanvas {
       display: block;
     }
 
-    /* CONTROLS OVERLAY */
-    #controls-box {
+    /* --- OVERLAY CONTAINER --- */
+    #ui-layer {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(0, 20, 40, 0.85);
-      border: 1.5px solid #00aaff;
-      border-radius: 8px;
-      padding: 12px 16px;
-      color: #ffffff;
-      font-size: 13px;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       pointer-events: none;
-      user-select: none;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    }
-
-    #controls-box h3 {
-      margin-bottom: 8px;
-      color: #00aaff;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    #controls-box ul {
-      list-style: none;
-    }
-
-    #controls-box li {
-      margin-bottom: 5px;
-    }
-
-    kbd {
-      background: #004477;
-      border: 1px solid #00aaff;
-      border-radius: 3px;
-      padding: 1px 5px;
-      font-family: monospace;
-      font-weight: bold;
-      color: #ffffff;
-    }
-
-    /* CHAT CONTAINER */
-    #chat-container {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      width: 320px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
       z-index: 10;
     }
 
+    #ui-layer input, 
+    #ui-layer button {
+      pointer-events: auto;
+    }
+
+    /* --- BASE PANEL IMAGE CARRIER --- */
+    .img-panel {
+      position: absolute;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      background-position: center;
+      color: #ffffff;
+      padding: 20px;
+      filter: drop-shadow(0px 8px 16px rgba(0, 0, 0, 0.5));
+    }
+
+    /* --- CONTROLS PANEL --- */
+    #controls-box {
+      top: 20px;
+      left: 20px;
+      width: 280px;
+      height: 200px;
+      background-image: url('controls.png');
+      padding-top: 55px; /* Offset text to clear the panel header graphic */
+      padding-left: 25px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    kbd {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #ffffff;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    /* --- CHAT PANEL --- */
+    #chat-container {
+      bottom: 20px;
+      left: 20px;
+      width: 480px;
+      height: 220px;
+      background-image: url('chat.png');
+      padding-top: 55px;
+      padding-left: 25px;
+      padding-right: 25px;
+      padding-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
     #chat-messages {
-      height: 140px;
+      height: 110px;
       overflow-y: auto;
-      background: rgba(0, 20, 40, 0.85);
-      border: 1.5px solid #00aaff;
-      border-radius: 6px;
-      padding: 8px;
       display: flex;
       flex-direction: column;
       gap: 4px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      padding-right: 6px;
     }
 
     .chat-msg {
@@ -97,43 +115,68 @@
 
     .chat-msg .username {
       font-weight: bold;
-      color: #00ff66;
+      color: #00d4ff;
     }
 
     #chat-input {
-      background: rgba(0, 20, 40, 0.95);
-      border: 1.5px solid #00aaff;
-      border-radius: 6px;
-      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(0, 212, 255, 0.4);
+      border-radius: 4px;
+      padding: 6px 10px;
       color: #ffffff;
-      font-size: 13px;
+      font-size: 12px;
       outline: none;
-      transition: border-color 0.2s ease;
+      width: 100%;
     }
 
     #chat-input:focus {
-      border-color: #00ff66;
+      border-color: #00d4ff;
+    }
+
+    /* --- LEADERBOARD PANEL --- */
+    #leaderboard-box {
+      top: 20px;
+      right: 20px;
+      width: 260px;
+      height: 240px;
+      background-image: url('leaderboard.png');
+      padding-top: 55px;
+      padding-left: 25px;
+      padding-right: 25px;
+    }
+
+    .lb-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .lb-row.me {
+      color: #00ff88;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
+
   <canvas id="gameCanvas"></canvas>
 
-  <div id="controls-box">
-    <h3>🎮 Controls</h3>
-    <ul>
-      <li><kbd>Mouse</kbd> Aim / Move</li>
-      <li><kbd>Left Click</kbd> Dash</li>
-      <li><kbd>Right Click</kbd> / <kbd>Space</kbd> Shoot Banana</li>
-      <li><kbd>F</kbd> Throw Gun</li>
-      <li><kbd>E</kbd> / <kbd>Middle Click</kbd> Bite</li>
-      <li><kbd>Enter</kbd> Open Chat</li>
-    </ul>
-  </div>
+  <div id="ui-layer">
+    
+    <div id="controls-box" class="img-panel">
+    </div>
 
-  <div id="chat-container">
-    <div id="chat-messages"></div>
-    <input type="text" id="chat-input" placeholder="Press Enter to chat..." maxlength="80">
+    <div id="chat-container" class="img-panel">
+      <div id="chat-messages"></div>
+      <input type="text" id="chat-input" placeholder="Type a message..." maxlength="80">
+    </div>
+
+    <div id="leaderboard-box" class="img-panel">
+      <div id="leaderboard-list"></div>
+    </div>
+
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

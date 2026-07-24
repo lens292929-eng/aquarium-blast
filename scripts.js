@@ -818,12 +818,38 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// Receive chat message from server and display it
+
+// 1. Send chat message when pressing Enter
+if (chatInput) {
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const message = chatInput.value.trim();
+      if (message !== '') {
+        socket.emit('chatMessage', message);
+        chatInput.value = ''; // Clear input field
+      }
+    }
+  });
+}
+
+// 2. Receive chat message from server and display it
 socket.on('newMessage', (data) => {
-  const msgEl = document.createElement('div');
-  msgEl.className = 'chat-msg';
-  msgEl.innerHTML = `<span class="username">${data.username}:</span> ${data.text}`;
-  chatMessages.appendChild(msgEl);
+  if (!chatMessages) return;
+
+  const msgElement = document.createElement('div');
+  msgElement.className = 'chat-msg';
+  
+  // Use textContent for safety to prevent HTML injection
+  const usernameSpan = document.createElement('span');
+  usernameSpan.className = 'username';
+  usernameSpan.textContent = `${data.username}: `;
+
+  const textNode = document.createTextNode(data.text);
+
+  msgElement.appendChild(usernameSpan);
+  msgElement.appendChild(textNode);
+  
+  chatMessages.appendChild(msgElement);
   
   // Auto-scroll to latest message
   chatMessages.scrollTop = chatMessages.scrollHeight;
