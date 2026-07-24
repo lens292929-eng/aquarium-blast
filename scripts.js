@@ -940,41 +940,55 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('touchcancel', stopJoystick);
 
   function handleJoystickMove(touch) {
-    const rect = base.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+  const rect = base.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
 
-    let deltaX = touch.clientX - centerX;
-    let deltaY = touch.clientY - centerY;
-    const distance = Math.hypot(deltaX, deltaY);
+  let deltaX = touch.clientX - centerX;
+  let deltaY = touch.clientY - centerY;
 
-    if (distance > maxRadius) {
-      deltaX = (deltaX / distance) * maxRadius;
-      deltaY = (deltaY / distance) * maxRadius;
-    }
+  // Sanity check to prevent NaN/invalid numbers
+  if (isNaN(deltaX) || isNaN(deltaY)) return;
 
-    // Move the visual thumbstick knob
-    stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+  // Math.hypot calculates distance from center safely
+  const distance = Math.hypot(deltaX, deltaY);
 
-    // Calculate angle & normalized intensity (0.0 to 1.0)
-    const angle = Math.atan2(deltaY, deltaX);
-    const intensity = Math.min(distance / maxRadius, 1);
+  // If touch is at exact center (distance == 0), don't divide by zero!
+  if (distance === 0) return;
 
-    // 1. Directly update player angle
-    if (typeof player !== 'undefined' && !player.isDead) {
-      player.angle = angle;
+  if (distance > maxRadius) {
+    deltaX = (deltaX / distance) * maxRadius;
+    deltaY = (deltaY / distance) * maxRadius;
+  }
 
-      // 2. Direct position movement (smooth 360° motion)
-      if (intensity > 0.15) { // Deadzone check
-        player.x += Math.cos(angle) * player.speed * intensity;
-        player.y += Math.sin(angle) * player.speed * intensity;
-        
-        if (typeof clampPlayerPosition === 'function') {
-          clampPlayerPosition();
-        }
+  // Move visual stick
+  stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+  // Angle in radians
+  const angle = Math.atan2(deltaY, deltaX);
+  const intensity = Math.min(distance / maxRadius, 1);
+
+  // Apply movement safely
+  if (typeof player !== 'undefined' && !player.isDead) {
+    player.angle = angle;
+
+    // Deadzone check (don't move if tiny accidental drag)
+    if (intensity > 0.15) {
+      const moveX = Math.cos(angle) * player.speed * intensity;
+      const moveY = Math.sin(angle) * player.speed * intensity;
+
+      // Make sure values are valid numbers before adding!
+      if (!isNaN(moveX) && !isNaN(moveY)) {
+        player.x += moveX;
+        player.y += moveY;
+      }
+
+      if (typeof clampPlayerPosition === 'function') {
+        clampPlayerPosition();
       }
     }
   }
+}
 
   // Mobile Action Buttons
   if (btnShoot) {
