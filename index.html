@@ -5,18 +5,136 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fish Arena Online</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       overflow: hidden;
       background-color: #001e36;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
+
     canvas {
       display: block;
+    }
+
+    /* CONTROLS OVERLAY */
+    #controls-box {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 20, 40, 0.85);
+      border: 1.5px solid #00aaff;
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #ffffff;
+      font-size: 13px;
+      pointer-events: none;
+      user-select: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    #controls-box h3 {
+      margin-bottom: 8px;
+      color: #00aaff;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #controls-box ul {
+      list-style: none;
+    }
+
+    #controls-box li {
+      margin-bottom: 5px;
+    }
+
+    kbd {
+      background: #004477;
+      border: 1px solid #00aaff;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-family: monospace;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    /* CHAT CONTAINER */
+    #chat-container {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    #chat-messages {
+      height: 140px;
+      overflow-y: auto;
+      background: rgba(0, 20, 40, 0.85);
+      border: 1.5px solid #00aaff;
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .chat-msg {
+      font-size: 13px;
+      color: #ffffff;
+      word-wrap: break-word;
+    }
+
+    .chat-msg .username {
+      font-weight: bold;
+      color: #00ff66;
+    }
+
+    #chat-input {
+      background: rgba(0, 20, 40, 0.95);
+      border: 1.5px solid #00aaff;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #ffffff;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    #chat-input:focus {
+      border-color: #00ff66;
     }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+
+  <div id="controls-box">
+    <h3>🎮 Controls</h3>
+    <ul>
+      <li><kbd>Mouse</kbd> Aim / Move</li>
+      <li><kbd>Left Click</kbd> Dash</li>
+      <li><kbd>Right Click</kbd> / <kbd>Space</kbd> Shoot Banana</li>
+      <li><kbd>F</kbd> Throw Gun</li>
+      <li><kbd>E</kbd> / <kbd>Middle Click</kbd> Bite</li>
+      <li><kbd>Enter</kbd> Open Chat</li>
+    </ul>
+  </div>
+
+  <div id="chat-container">
+    <div id="chat-messages"></div>
+    <input type="text" id="chat-input" placeholder="Press Enter to chat..." maxlength="80">
+  </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="scripts.js"></script>

@@ -241,7 +241,7 @@ window.addEventListener('mousemove', (e) => {
 });
 
 window.addEventListener('mousedown', (e) => {
-  if (player.isDead) return;
+  if (isChatting || player.isDead) return;
   if (e.button === 0) { // Left Click: Dash
     const currentTime = Date.now();
     if (currentTime - player.lastDashTime >= player.dashCooldown) {
@@ -261,11 +261,11 @@ window.addEventListener('mousedown', (e) => {
 
 window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
-  if (!player.isDead) shootBananaPistol();
+  if (!isChatting && !player.isDead) shootBananaPistol();
 });
 
 window.addEventListener('keydown', (e) => {
-  if (player.isDead) return;
+  if (isChatting || player.isDead) return;
   const key = e.key.toLowerCase();
   if (e.code === 'Space') shootBananaPistol();
   if (key === 'f') throwGun();
@@ -690,11 +690,6 @@ function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead) {
     ctx.fillText(username, 0, barY - 5);
   }
 
-  // subtle glow ring while dashing
-  if (!isDead && player && angle !== undefined) {
-    // (kept lightweight: only visual, no gameplay effect)
-  }
-
   ctx.rotate(angle);
   if (isDead) {
     ctx.scale(1, -1);
@@ -793,5 +788,45 @@ function drawLeaderboard() {
     ctx.textAlign = 'left';
   });
 }
+
+// ==========================================
+// CHAT & CONTROLS INTEGRATION
+// ==========================================
+
+const chatInput = document.getElementById('chat-input');
+const chatMessages = document.getElementById('chat-messages');
+
+let isChatting = false;
+
+// Handle toggling chat with 'Enter' key
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    if (document.activeElement === chatInput) {
+      // Send message
+      const text = chatInput.value.trim();
+      if (text.length > 0) {
+        socket.emit('chatMessage', text);
+      }
+      chatInput.value = '';
+      chatInput.blur();
+      isChatting = false;
+    } else {
+      // Focus chat box
+      chatInput.focus();
+      isChatting = true;
+    }
+  }
+});
+
+// Receive chat message from server and display it
+socket.on('newMessage', (data) => {
+  const msgEl = document.createElement('div');
+  msgEl.className = 'chat-msg';
+  msgEl.innerHTML = `<span class="username">${data.username}:</span> ${data.text}`;
+  chatMessages.appendChild(msgEl);
+  
+  // Auto-scroll to latest message
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
 
 update();
