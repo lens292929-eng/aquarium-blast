@@ -1,12 +1,19 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
+// Serve static assets (scripts.js, images, index.html)
 app.use(express.static(__dirname));
+
+// Fallback route to ensure index.html always loads
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 const MAP_WIDTH = 3000;
 const MAP_HEIGHT = 3000;
@@ -35,6 +42,7 @@ io.on('connection', (socket) => {
     socket.emit('initMap', { width: MAP_WIDTH, height: MAP_HEIGHT });
     socket.emit('currentPlayers', players);
     socket.broadcast.emit('newPlayer', players[socket.id]);
+    io.emit('leaderboardUpdate', getLeaderboard());
   });
 
   // 2. Movement Sync
@@ -111,12 +119,14 @@ io.on('connection', (socket) => {
 
 function getLeaderboard() {
   return Object.values(players)
+    .filter(p => p && p.username)
     .map(p => ({ username: p.username, kills: p.kills || 0 }))
     .sort((a, b) => b.kills - a.kills)
-    .slice(0, 5); // Top 5
+    .slice(0, 5);
 }
 
+// Bind to 0.0.0.0 so Render can route traffic to it
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Aquarium Blast server running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Aquarium Blast server running on port ${PORT}`);
 });
