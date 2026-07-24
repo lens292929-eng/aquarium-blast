@@ -354,39 +354,67 @@ function update() {
     // Twin-stick movement
     // --------------------------------------------------
 
-    let worldMouseX = mouse.x + (player.x - canvas.width / 2);
-    let worldMouseY = mouse.y + (player.y - canvas.height / 2);
+    // Determine if we're on a touch device
+const usingTouch =
+    ('ontouchstart' in window) ||
+    navigator.maxTouchPoints > 0;
 
-    let aimDX = worldMouseX - player.x;
-    let aimDY = worldMouseY - player.y;
+let worldMouseX = mouse.x + (player.x - canvas.width / 2);
+let worldMouseY = mouse.y + (player.y - canvas.height / 2);
 
-    // Only update aim if the aim stick is being pushed.
-    if (Math.hypot(aimDX, aimDY) > 10) {
-        player.angle = Math.atan2(aimDY, aimDX);
-    }
+let aimDX = worldMouseX - player.x;
+let aimDY = worldMouseY - player.y;
 
-    if (player.isBiting) {
+if (Math.hypot(aimDX, aimDY) > 10) {
+    player.angle = Math.atan2(aimDY, aimDX);
+}
 
-        player.vx *= 0.5;
-        player.vy *= 0.5;
+if (player.isBiting) {
 
-        player.biteTimer--;
+    player.vx *= 0.5;
+    player.vy *= 0.5;
 
-        if (player.biteTimer <= 0)
-            player.isBiting = false;
+    player.biteTimer--;
 
-    }
-    else if (!player.isDashing) {
+    if (player.biteTimer <= 0)
+        player.isBiting = false;
+
+}
+else if (!player.isDashing) {
+
+    if (usingTouch) {
 
         const deadZone = 0.15;
 
-        if (Math.abs(moveInput.x) > deadZone || Math.abs(moveInput.y) > deadZone) {
+        if (
+            Math.abs(moveInput.x) > deadZone ||
+            Math.abs(moveInput.y) > deadZone
+        ) {
 
             player.vx += moveInput.x * 0.35;
             player.vy += moveInput.y * 0.35;
 
+        } else {
+
+            player.vx *= 0.85;
+            player.vy *= 0.85;
+
         }
-        else {
+
+    } else {
+
+        // ORIGINAL PC MOVEMENT
+        const fishRange = (player.width / 2) * 4;
+
+        let dx = worldMouseX - player.x;
+        let dy = worldMouseY - player.y;
+
+        if (Math.hypot(dx, dy) > fishRange) {
+
+            player.vx += Math.cos(player.angle) * 0.25;
+            player.vy += Math.sin(player.angle) * 0.25;
+
+        } else {
 
             player.vx *= 0.85;
             player.vy *= 0.85;
@@ -394,6 +422,8 @@ function update() {
         }
 
     }
+
+}
 
     // DASH LOGIC & TRAIL CREATION
     if (player.isDashing) {
