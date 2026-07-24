@@ -885,22 +885,27 @@ socket.on('newMessage', (data) => {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-// --- VIRTUAL JOYSTICK LOGIC ---
-const base = document.getElementById('joystick-base');
-const stick = document.getElementById('joystick-stick');
+// --- FIXED MOBILE TOUCH CONTROLS ---
+window.addEventListener('DOMContentLoaded', () => {
+  const base = document.getElementById('joystick-base');
+  const stick = document.getElementById('joystick-stick');
+  const btnShoot = document.getElementById('btn-shoot');
+  const btnDash = document.getElementById('btn-dash');
 
-let joystickActive = false;
-let joystickTouchId = null;
-const maxRadius = 35; // How far the stick can drag from center
+  if (!base || !stick) return;
 
-if (base && stick) {
+  let joystickActive = false;
+  let joystickTouchId = null;
+  const maxRadius = 35; // Maximum stick pull distance
+
   // Touch Start
   base.addEventListener('touchstart', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     const touch = e.changedTouches[0];
     joystickTouchId = touch.identifier;
     joystickActive = true;
-    updateJoystick(touch);
+    handleJoystickMove(touch);
   }, { passive: false });
 
   // Touch Move
@@ -908,21 +913,21 @@ if (base && stick) {
     if (!joystickActive) return;
     for (let i = 0; i < e.changedTouches.length; i++) {
       if (e.changedTouches[i].identifier === joystickTouchId) {
-        updateJoystick(e.changedTouches[i]);
+        handleJoystickMove(e.changedTouches[i]);
         break;
       }
     }
   }, { passive: false });
 
-  // Reset Stick when Touch Ends
-  const resetJoystick = (e) => {
+  // Touch End / Release
+  const stopJoystick = (e) => {
     for (let i = 0; i < e.changedTouches.length; i++) {
       if (e.changedTouches[i].identifier === joystickTouchId) {
         joystickActive = false;
         joystickTouchId = null;
         stick.style.transform = `translate(0px, 0px)`;
         
-        // Stop movement when thumb is lifted
+        // Reset keyboard state if used
         if (typeof keys !== 'undefined') {
           keys.w = false; keys.a = false; keys.s = false; keys.d = false;
         }
@@ -931,10 +936,10 @@ if (base && stick) {
     }
   };
 
-  window.addEventListener('touchend', resetJoystick);
-  window.addEventListener('touchcancel', resetJoystick);
+  window.addEventListener('touchend', stopJoystick);
+  window.addEventListener('touchcancel', stopJoystick);
 
-  function updateJoystick(touch) {
+  function handleJoystickMove(touch) {
     const rect = base.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
@@ -943,28 +948,48 @@ if (base && stick) {
     let deltaY = touch.clientY - centerY;
     const distance = Math.hypot(deltaX, deltaY);
 
-    // Limit stick distance within the circle
     if (distance > maxRadius) {
       deltaX = (deltaX / distance) * maxRadius;
       deltaY = (deltaY / distance) * maxRadius;
     }
 
-    // Move visual stick
+    // Move the visual thumbstick knob
     stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
 
-    // 1. Aim player towards joystick angle
-    if (typeof player !== 'undefined') {
-      player.angle = Math.atan2(deltaY, deltaX);
-    }
+    // Calculate angle & normalized intensity (0.0 to 1.0)
+    const angle = Math.atan2(deltaY, deltaX);
+    const intensity = Math.min(distance / maxRadius, 1);
 
-    // 2. Map drag offsets to WASD movement triggers
-    if (typeof keys !== 'undefined') {
-      keys.d = deltaX > 8;
-      keys.a = deltaX < -8;
-      keys.s = deltaY > 8;
-      keys.w = deltaY < -8;
+    // 1. Directly update player angle
+    if (typeof player !== 'undefined' && !player.isDead) {
+      player.angle = angle;
+
+      // 2. Direct position movement (smooth 360° motion)
+      if (intensity > 0.15) { // Deadzone check
+        player.x += Math.cos(angle) * player.speed * intensity;
+        player.y += Math.sin(angle) * player.speed * intensity;
+        
+        if (typeof clampPlayerPosition === 'function') {
+          clampPlayerPosition();
+        }
+      }
     }
   }
-}
+
+  // Mobile Action Buttons
+  if (btnShoot) {
+    btnShoot.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (typeof shootBullet === 'function') shootBullet();
+    }, { passive: false });
+  }
+
+  if (btnDash) {
+    btnDash.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (typeof performDash === 'function') performDash();
+    }, { passive: false });
+  }
+});
 
 update();
