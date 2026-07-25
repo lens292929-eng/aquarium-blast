@@ -23,7 +23,9 @@ io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id}`);
 
   // 1. Join Game
-  socket.on('joinGame', (username) => {
+  socket.on('joinGame', (data) => {
+  const username = data.username || "Fish";
+  const character = data.character || "Clownfish";
     players[socket.id] = {
       id: socket.id,
       x: Math.random() * (MAP_WIDTH - 200) + 100,
@@ -32,7 +34,8 @@ io.on('connection', (socket) => {
       hp: 100,
       maxHp: 100,
       kills: 0,
-      username: username || "Fish",
+      username: username,
+      character: character,
       hasGun: true,
       isDashing: false,
       dashSpinAngle: 0,

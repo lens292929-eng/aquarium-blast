@@ -1,7 +1,11 @@
 const socket = io();
 
 const myUsername = prompt("Enter your Fish Username:", "Clownfish") || "Clownfish";
-socket.emit('joinGame', myUsername);
+
+socket.emit("joinGame", {
+    username: username,
+    character: localStorage.getItem("character") || "Clownfish"
+});
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -21,6 +25,10 @@ const crosshairImage = new Image(); crosshairImage.src = 'crosshair.png';
 const dashImage = new Image(); dashImage.src = 'dash.png';
 const gunImage = new Image(); gunImage.src = 'gun.png';
 const bananaImage = new Image(); bananaImage.src = 'banana.png';
+const bassFishImage = new Image();
+bassFishImage.src = "bassfish.png";
+const bassanaImage = new Image();
+bassanaImage.src = "bassana.png";
 
 // --- MAP & PLAYER OBJECTS ---
 let MAP_WIDTH = 3000;
@@ -618,13 +626,14 @@ function draw() {
   drawFish(
     player.x,
     player.y,
-    player.isDead ? player.flopAngle : player.angle + player.dashSpinAngle,
+    player.angle,
     player.username,
     player.hp,
     player.maxHp,
     player.hasGun,
-    player.isDead
-  );
+    player.isDead,
+    player.character
+);
 
   // 8. Floating damage numbers (world space, drawn above fish)
   floatingTexts.forEach(t => {
@@ -712,7 +721,7 @@ function drawKillBanner() {
   ctx.restore();
 }
 
-function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead) {
+function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead, character) {
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
 
@@ -723,72 +732,90 @@ function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead) {
     const barY = -40;
     const hpRatio = hp / maxHp;
 
-    // Nameplate background
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     const nameWidth = ctx.measureText(username).width;
+
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.fillRect(-nameWidth / 2 - 6, barY - 16, nameWidth + 12, 14);
 
-    // Health bar background (red)
     ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
     ctx.fillRect(-barWidth / 2, barY, barWidth, barHeight);
 
-    // Health bar fill
     const currentHpWidth = Math.max(0, hpRatio * barWidth);
-    ctx.fillStyle = hpRatio > 0.5 ? '#00ff66' : hpRatio > 0.25 ? '#ffcc00' : '#ff3333';
+
+    ctx.fillStyle =
+      hpRatio > 0.5 ? '#00ff66'
+      : hpRatio > 0.25 ? '#ffcc00'
+      : '#ff3333';
+
     ctx.fillRect(-barWidth / 2, barY, currentHpWidth, barHeight);
 
-    // Health bar border
-    ctx.strokeStyle = '#000000';
+    ctx.strokeStyle = '#000';
     ctx.lineWidth = 1;
     ctx.strokeRect(-barWidth / 2, barY, barWidth, barHeight);
 
-    // Username text
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#fff';
     ctx.fillText(username, 0, barY - 5);
   }
 
-  // --- 2. DIRECTION & DEAD STATE TRANSFORMATIONS ---
+  // --- 2. DIRECTION & DEAD STATE ---
   const isFacingLeft = Math.cos(angle) < 0;
 
-  // Dead belly-up effect
   if (isDead) {
     ctx.scale(1, -1);
     ctx.globalAlpha = 0.75;
   }
 
-  // --- 3. DRAW FISH SPRITE ---
+  // --- 3. PICK SPRITE ---
+  let sprite = fishImage;
+
+  if (character === "Bass Fish") {
+    sprite = bassFishImage;
+  }
+
+  // --- 4. DRAW FISH ---
   ctx.save();
-  
-  // Flip fish horizontally if facing left
+
   if (isFacingLeft) {
     ctx.scale(-1, 1);
   }
 
-  // Fish dimensions (adjust width/height values as needed)
   const fishWidth = 60;
   const fishHeight = 40;
-  ctx.drawImage(fishImage, -fishWidth / 2, -fishHeight / 2, fishWidth, fishHeight);
+
+  ctx.drawImage(
+    sprite,
+    -fishWidth / 2,
+    -fishHeight / 2,
+    fishWidth,
+    fishHeight
+  );
+
   ctx.restore();
 
-  // --- 4. DRAW GUN (ROTATES 360° TOWARD AIM) ---
+  // --- 5. DRAW GUN ---
   if (hasGun && !isDead) {
     ctx.save();
+
     ctx.rotate(angle);
 
-    // If aiming left, invert gun vertically so it stays right-side-up
     if (isFacingLeft) {
       ctx.scale(1, -1);
     }
 
-    // Offset gun relative to fish mouth
-    ctx.drawImage(gunImage, 10, -12, 40, 28);
+    if (character === "Bass Fish") {
+      ctx.drawImage(bassanaImage, 10, -12, 40, 28);
+    } else {
+      ctx.drawImage(gunImage, 10, -12, 40, 28);
+    }
+
     ctx.restore();
   }
 
   ctx.restore();
 }
+
 function drawMinimap() {
   const size = 150;
   const padding = 20;
@@ -1178,5 +1205,71 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
 });
+
+const characters = [
+
+{
+    name: "Clownfish",
+    sprite: "clownfish.png",
+    weapon: "🍌 Banana Gun",
+    desc: "A balanced fish that starts with the Banana Gun."
+},
+
+{
+    name: "Bass Fish",
+    sprite: "bassfish.png",
+    weapon: "🎸 Bassana",
+    desc: "Drops the bass... literally."
+}
+
+];
+
+let selectedCharacter = 0;
+
+function updateCharacter(){
+
+    const c = characters[selectedCharacter];
+
+    document.getElementById("character-preview").src = c.sprite;
+    document.getElementById("character-name").textContent = c.name;
+    document.getElementById("character-weapon").textContent = c.weapon;
+    document.getElementById("character-desc").textContent = c.desc;
+
+}
+
+document.getElementById("next-btn").onclick = ()=>{
+
+    selectedCharacter++;
+
+    if(selectedCharacter>=characters.length)
+        selectedCharacter=0;
+
+    updateCharacter();
+
+};
+
+document.getElementById("prev-btn").onclick = ()=>{
+
+    selectedCharacter--;
+
+    if(selectedCharacter<0)
+        selectedCharacter=characters.length-1;
+
+    updateCharacter();
+
+};
+
+document.getElementById("play-btn").onclick = ()=>{
+
+    localStorage.setItem(
+        "character",
+        characters[selectedCharacter].name
+    );
+
+    document.getElementById("character-select").style.display="none";
+
+};
+
+updateCharacter();
 
 update();

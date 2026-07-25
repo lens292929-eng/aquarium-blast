@@ -257,6 +257,83 @@
       border-color: rgba(255, 120, 120, 0.9);
     }
 
+    /* ================= CHARACTER SELECT ================= */
+
+    #character-select {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(#06253b, #02111d);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    #character-card {
+      width: 420px;
+      max-width: 90%;
+      background: rgba(0, 20, 40, .9);
+      border: 2px solid #00d2ff;
+      border-radius: 16px;
+      text-align: center;
+      padding: 25px;
+      color: white;
+    }
+
+    #character-card h1 {
+      color: #00d2ff;
+      margin-bottom: 20px;
+    }
+
+    #character-preview {
+      width: 180px;
+      height: 180px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      margin: 20px auto;
+    }
+
+    #character-name {
+      font-size: 30px;
+      font-weight: bold;
+    }
+
+    #character-weapon {
+      color: #ffd84d;
+      margin: 10px 0;
+    }
+
+    #character-desc {
+      color: #ddd;
+      min-height: 40px;
+    }
+
+    .character-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    .character-buttons button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    #play-btn {
+      background: #00c853;
+      color: white;
+    }
+
+    #prev-btn,
+    #next-btn {
+      background: #0091ea;
+      color: white;
+    }
+
     /* --- MOBILE SCREEN OVERRIDES --- */
     @media (hover: none) and (pointer: coarse) {
       /* Show touch overlay on mobile */
@@ -305,6 +382,34 @@
   </style>
 </head>
 <body>
+  
+  <div id="character-select">
+
+  <div id="character-card">
+
+    <h1>Aquarium Blast</h1>
+
+    <img id="character-preview" src="clownfish.png">
+
+    <div id="character-name">Clownfish</div>
+
+    <div id="character-weapon">
+      🍌 Banana Gun
+    </div>
+
+    <div id="character-desc">
+      A balanced fish that starts with the Banana Gun.
+    </div>
+
+    <div class="character-buttons">
+      <button id="prev-btn">◀</button>
+      <button id="play-btn">PLAY</button>
+      <button id="next-btn">▶</button>
+    </div>
+
+  </div>
+
+</div>
 
   <canvas id="gameCanvas"></canvas>
 
