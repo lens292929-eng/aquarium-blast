@@ -45,6 +45,8 @@ const player = {
   maxSpeed: 5,
 
   username: myUsername,
+  character: localStorage.getItem("character") || "Clownfish",
+
   hp: 100,
   maxHp: 100,
   kills: 0,
@@ -622,6 +624,7 @@ function draw() {
     drawFish(p.x, p.y, p.angle + (p.dashSpinAngle || 0), p.username, p.hp, p.maxHp || 100, p.hasGun, p.isDead);
   });
 
+  console.log("Character:", player.character);
   // 7. Local Player
   drawFish(
     player.x,
