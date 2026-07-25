@@ -891,7 +891,7 @@ if (hasGun && !isDead) {
         ctx.rotate(isSwinging ? swingAngle : 0);
         ctx.translate(-10, 0);
 
-        ctx.drawImage(bassanaImage, 5, -15, 75, 25);
+        ctx.drawImage(bassanaImage, 30, -15, 75, 25);
 
     } else {
 
