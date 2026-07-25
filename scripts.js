@@ -808,11 +808,21 @@ function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead, character, i
   ctx.rotate(angle);
 
   if (character === "Bass Fish") {
-      ctx.rotate(isSwinging ? swingAngle : 0);
-      ctx.drawImage(bassanaImage, -5, -18, 70, 40);
-  } else {
-      ctx.drawImage(gunImage, 10, -12, 40, 28);
-  }
+
+    ctx.translate(10, 0);
+    ctx.rotate(isSwinging ? swingAngle : 0);
+    ctx.translate(-10, 0);
+
+    // Remove this:
+    // ctx.rotate(Math.PI / 2);
+
+    ctx.drawImage(bassanaImage, 5, -15, 75, 25);
+
+} else {
+
+    ctx.drawImage(gunImage, 10, -12, 40, 28);
+
+}
   // --- 1. DRAW UI (HEALTH BAR & NAME) ABOVE FISH ---
   if (!isDead) {
     const barWidth = 60;
