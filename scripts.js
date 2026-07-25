@@ -805,24 +805,7 @@ function drawKillBanner() {
 function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead, character, isSwinging, swingAngle) {
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
-  ctx.rotate(angle);
 
-  if (character === "Bass Fish") {
-
-    ctx.translate(10, 0);
-    ctx.rotate(isSwinging ? swingAngle : 0);
-    ctx.translate(-10, 0);
-
-    // Remove this:
-    // ctx.rotate(Math.PI / 2);
-
-    ctx.drawImage(bassanaImage, 5, -15, 75, 25);
-
-} else {
-
-    ctx.drawImage(gunImage, 10, -12, 40, 28);
-
-}
   // --- 1. DRAW UI (HEALTH BAR & NAME) ABOVE FISH ---
   if (!isDead) {
     const barWidth = 60;
@@ -893,23 +876,31 @@ function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead, character, i
   ctx.restore();
 
   // --- 5. DRAW GUN ---
-  if (hasGun && !isDead) {
+if (hasGun && !isDead) {
     ctx.save();
 
     ctx.rotate(angle);
 
     if (isFacingLeft) {
-      ctx.scale(1, -1);
+        ctx.scale(1, -1);
     }
 
     if (character === "Bass Fish") {
-      ctx.drawImage(bassanaImage, 10, -12, 40, 28);
+
+        ctx.translate(10, 0);
+        ctx.rotate(isSwinging ? swingAngle : 0);
+        ctx.translate(-10, 0);
+
+        ctx.drawImage(bassanaImage, 5, -15, 75, 25);
+
     } else {
-      ctx.drawImage(gunImage, 10, -12, 40, 28);
+
+        ctx.drawImage(gunImage, 10, -12, 40, 28);
+
     }
 
     ctx.restore();
-  }
+}
 
   ctx.restore();
 }
