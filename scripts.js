@@ -3,7 +3,7 @@ const socket = io();
 const myUsername = prompt("Enter your Fish Username:", "Clownfish") || "Clownfish";
 
 socket.emit("joinGame", {
-    username: username,
+    username: myUsername,
     character: localStorage.getItem("character") || "Clownfish"
 });
 
