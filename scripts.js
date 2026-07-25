@@ -420,10 +420,13 @@ function update() {
 
     player.swingTimer++;
 
-    // Swing from -70° to +70°
-    player.swingAngle = (-70 + player.swingTimer * 14) * Math.PI / 180;
+    const progress = player.swingTimer / 20;
 
-    if (player.swingTimer >= 10) {
+    player.swingAngle =
+        (-70 + 140 * Math.sin(progress * Math.PI / 2)) *
+        Math.PI / 180;
+
+    if (player.swingTimer >= 20) {
         player.isSwinging = false;
         player.swingTimer = 0;
         player.swingAngle = 0;
