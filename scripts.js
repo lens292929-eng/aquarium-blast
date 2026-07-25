@@ -66,6 +66,10 @@ const player = {
   lastThrowTime: 0,
   throwCooldown: 20000,
 
+  isSwinging: false,
+  swingAngle: 0,
+  swingTimer: 0,
+  
   isBiting: false,
   biteTimer: 0,
   lastBiteTime: 0,
@@ -304,9 +308,18 @@ function performBite() {
 }
 
 function shootBananaPistol() {
+
+  if (player.character === "Bass Fish") {
+    swingBass();
+    return;
+  }
+
   if (player.isDead) return;
+
   const currentTime = Date.now();
+
   if (currentTime - player.lastShootTime >= player.shootCooldown) {
+
     player.lastShootTime = currentTime;
 
     bananas.push({
@@ -322,11 +335,60 @@ function shootBananaPistol() {
     spawnParticles(
       player.x + Math.cos(player.angle) * 35,
       player.y + Math.sin(player.angle) * 35,
-      6, '#ffe066', { speed: 3, life: 12, size: 2.5 }
+      6, '#ffe066',
+      { speed: 3, life: 12, size: 2.5 }
     );
 
     player.vx -= Math.cos(player.angle) * 3;
     player.vy -= Math.sin(player.angle) * 3;
+  }
+}
+
+function swingBass() {
+
+  if (player.isDead) return;
+
+  const currentTime = Date.now();
+
+  if (currentTime - player.lastShootTime < 450) return;
+
+  player.lastShootTime = currentTime;
+
+  player.isSwinging = true;
+  player.swingTimer = 0;
+
+  // little recoil
+  player.vx -= Math.cos(player.angle) * 1.5;
+  player.vy -= Math.sin(player.angle) * 1.5;
+
+  // Hit enemies
+  for (const id in otherPlayers) {
+
+    const enemy = otherPlayers[id];
+
+    const dx = enemy.x - player.x;
+    const dy = enemy.y - player.y;
+
+    const distance = Math.hypot(dx, dy);
+
+    if (distance > 90) continue;
+
+    const angleToEnemy = Math.atan2(dy, dx);
+
+    let diff = angleToEnemy - player.angle;
+
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+
+    // 90° attack cone
+    if (Math.abs(diff) < Math.PI / 4) {
+
+      socket.emit("takeDamage", {
+        targetId: id,
+        amount: 35
+      });
+
+    }
   }
 }
 
@@ -353,6 +415,20 @@ function throwGun() {
 // --- GAME LOOP ---
 function update() {
   elapsedFrames++;
+
+  if (player.isSwinging) {
+
+    player.swingTimer++;
+
+    // Swing from -70° to +70°
+    player.swingAngle = (-70 + player.swingTimer * 14) * Math.PI / 180;
+
+    if (player.swingTimer >= 10) {
+        player.isSwinging = false;
+        player.swingTimer = 0;
+        player.swingAngle = 0;
+    }
+}
 
   if (player.isDead) {
     player.vy += 0.45;
@@ -727,7 +803,14 @@ function drawKillBanner() {
 function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead, character) {
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
+  ctx.rotate(angle);
 
+  if (character === "Bass Fish") {
+      ctx.rotate(isSwinging ? swingAngle : 0);
+      ctx.drawImage(bassanaImage, -5, -18, 70, 40);
+  } else {
+      ctx.drawImage(gunImage, 10, -12, 40, 28);
+  }
   // --- 1. DRAW UI (HEALTH BAR & NAME) ABOVE FISH ---
   if (!isDead) {
     const barWidth = 60;
