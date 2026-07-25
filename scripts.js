@@ -711,7 +711,9 @@ function draw() {
     player.maxHp,
     player.hasGun,
     player.isDead,
-    player.character
+    player.character,
+    player.isSwinging,
+    player.swingAngle
 );
 
   // 8. Floating damage numbers (world space, drawn above fish)
@@ -800,7 +802,7 @@ function drawKillBanner() {
   ctx.restore();
 }
 
-function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead, character) {
+function drawFish(x, y, angle, username, hp, maxHp, hasGun, isDead, character, isSwinging, swingAngle) {
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
   ctx.rotate(angle);
